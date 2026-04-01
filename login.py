@@ -1,6 +1,7 @@
 import re
 import bcrypt
 import sqlite3
+import pandas as pd
 
 
 def hash_password(plain_text_password):
@@ -113,6 +114,7 @@ def main():
             if password != password_confirm:
                 print("Error: Passwords do not match.")
                 continue
+            role = input("Enter your role: ").strip().lower()
 
             # Register the user
             register_user(username, password)
@@ -140,10 +142,118 @@ def main():
             print("\nError: Invalid option. Please select 1, 2, or 3.")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#    main()
 
 
-conn = sqlite3.connect('DATA\intelligent_platform.db')
+def user_table(conn):
+    conn = sqlite3.connect("DATA/intelligent_platform.db")
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
 
-conn.close()
+
+def add_user(conn, username, password, role):
+    cursor = conn.cursor()
+    cursor.execute('''
+            INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)
+        ''', (username, password, role))
+    conn.commit()
+
+
+def migrate_users_to_db(conn):
+    with open("DATA/users.txt", "r") as f:
+        users = f.readlines()
+        for user in users:
+            name, password_hash = user.strip().split(',')
+            add_user(conn, name, password_hash)
+
+    conn.close()
+
+
+# read data from the users.
+
+
+def get_all_users(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, password_hash FROM users")
+    users = cursor.fetchall()
+    conn.close()
+    return users
+
+
+def get_user(conn, name):
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT username, password_hash FROM users WHERE username = ?", (name,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
+
+
+def update_user(conn, name, new_name):
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET username = ? WHERE username = ?", (new_name, name))
+    conn.commit()
+    conn.close()
+    return name + " has been updated." + " New username: " + new_name
+
+
+def delete_user(conn, name):
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE username = ?", (name,))
+    conn.commit()
+    conn.close()
+    return name + " has been deleted from the database."
+
+
+def migrate_cyber_incidents_to_db(conn):
+    data = pd.read_csv("DATA/cyber_incidents.csv")
+    data.to_sql("cyber_incidents", conn)
+
+
+def migrate_datasets_metadata_to_db(conn):
+    data = pd.read_csv("DATA/datasets_metadata.csv")
+    data.to_sql("datasets_metadata", conn)
+
+
+def migrate_it_tickets_to_db(conn):
+    data = pd.read_csv("DATA/it_tickets.csv")
+    data.to_sql("it_tickets", conn)
+
+
+def get_all_cyber_incidents(conn):
+    sql = '''
+        SELECT * FROM cyber_incidents
+    '''
+    data = pd.read_sql(sql, conn)
+    conn.close()
+    return (data)
+
+
+def get_all_datasets_metadata(conn):
+    sql = '''
+        SELECT * FROM datasets_metadata
+    '''
+    data = pd.read_sql(sql, conn)
+    conn.close()
+    return (data)
+
+
+def get_all_it_tickets(conn):
+    sql = '''
+        SELECT * FROM it_tickets
+    '''
+    data = pd.read_sql(sql, conn)
+    conn.close()
+    return (data)
+
+
+conn = sqlite3.connect("DATA/intelligent_platform.db")
