@@ -1,10 +1,12 @@
+from app_model.users import add_user, get_user
 import re
 import bcrypt
 import sqlite3
 import pandas as pd
 
-from app_model.db import conn
-from app_model.users import add_user, get_user
+from app_model.db import check_connection
+
+conn = check_connection()
 
 
 def hash_password(plain_text_password):
