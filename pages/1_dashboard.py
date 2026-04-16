@@ -3,11 +3,24 @@ import pandas as pd
 from app_model.cyber_incident import get_all_cyber_incidents
 from app_model.db import check_connection
 
+
 st.set_page_config(
     page_title="Dashboard",
     page_icon="📊",
     layout="wide"
 )
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+if not st.session_state["logged_in"]:
+    st.warning("Please log in to access the dashboard.")
+    if st.button("Go to Login Page"):
+        st.session_state["logged_in"] = False
+        st.switch_page("Home.py")
+    st.stop()
+else:
+    st.success("You are logged in!")
+
 conn = check_connection()
 data = get_all_cyber_incidents(conn)
 
